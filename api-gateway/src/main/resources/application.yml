@@ -1,0 +1,61 @@
+server:
+  port: 9191
+  
+spring:
+  application:
+    name: API-GATEWAY
+  cloud:
+    gateway:
+      routes:
+        - id: USER-SERVICE
+          uri: lb://USER-SERVICE
+          predicates:
+            - Path=/us/**
+          filters:
+            - name: CircuitBreaker
+              args:
+                name: USER-SERVICE
+                fallbackuri: forward:/userServiceFallBack
+        - id: DEPT-SERVICE
+          uri: lb://DEPT-SERVICE
+          predicates:
+            - Path=/ds/**
+          filters:
+            - name: CircuitBreaker
+              args:
+                name: DEPT-SERVICE
+                fallbackuri: forward:/deptServiceFallBack
+                
+#For reference: https://jsession4d.com/a-quick-guide-to-resilience4j-with-spring-boot/
+resilience4j.circuitbreaker:
+  instances:
+    userService:
+      registerHealthIndicator: true
+      slidingWindowSize: 60
+      slidingWindowType: TIME_BASED
+      permittedNumberOfCallsInHalfOpenState: 3
+      minimumNumberOfCalls: 10
+      waitDurationInOpenState: 5s
+      slowCallRateThreshold: 100
+      slowCallDurationThreshold: 2000
+      failureRateThreshold: 50
+    deptService:
+      registerHealthIndicator: true
+      slidingWindowSize: 60
+      slidingWindowType: TIME_BASED
+      permittedNumberOfCallsInHalfOpenState: 3
+      minimumNumberOfCalls: 10
+      waitDurationInOpenState: 5s
+      slowCallRateThreshold: 100
+      slowCallDurationThreshold: 2000
+      failureRateThreshold: 50
+      
+management:
+  endpoint:
+    web:                           #To show metrics
+      exposure:
+        include: "*"
+    health:
+      show-details: always         #To show all details in /health endpoint.
+        
+management.health.circuitbreakers.enabled: true #To show Circuit Breaker status
